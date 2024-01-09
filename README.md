@@ -4,142 +4,153 @@ A presente API obtem a previsão do tempo para os próximos cinco dias, utilizan
 
 ## Requisitos Necessários 
 
-É necessário que se tenha instalado no ambiente a aplicações Docker e o Docker Compose.
+É necessário que se tenha instalado no ambiente a aplicações Docker, Docker Compose, Python versão 3.6 e MongoDB.
 
-- [Guia Docker](https://docs.docker.com/get-docker/)
-- [Guia Docker Compose](https://docs.docker.com/compose/install/)
+- [Doc Docker](https://docs.docker.com/get-docker/)
+- [Doc Docker Compose](https://docs.docker.com/compose/install/)
+- [Doc Python 3.6](https://www.python.org/downloads/release/python-360/)
+- [Doc Mongo](https://www.mongodb.com/docs/manual/installation/)
 
+## Inicializando o projeto via contêiner Docker
 
-## Inicializando o projeto
-
-Acesse a pasta raizentech_test e construa o ambiente virtualizado utilizando o docker
-
-```
-docker build -t raizentech .
-```
-
-Uma vez construído(build) o ambiente virtualizado do projeto, execute o comando abaixo para subir o contêiner
+Acesse a pasta raiz do projeto para construir ambiente virtualizado utilizando em Docker
 
 ```
-docker run -p 5000:5000 raizentech
+sudo docker-compose up --build
+
 ```
 Após o ambiente ser inicializado acessar a aplicação execute em outro terminal o comando abaixo para obter ID da aplicação
+
 ```
 docker ps
+```
+Acesse o contêiner atráves do comando abaixo, onde o parâmetro ID é obtido na etapa acima (docker ps):
 
 ```
-
-Acesse o Contêiner atráves do comando abaixo,:
-
-```
-sudo docker exec -it ID /bin/bash
+docker exec -it ID /bin/bash
 
 ```
-Após o ambiente ser inicializado acessar a aplicação
+Acessar a aplicação pelo bash do contêiner do ambiente inicializado acima, use o comando abaixo:
 
 ```
 curl http://127.0.0.1:5000/weather?city=curitiba
 
 ```
-Para executar os testes com o framework de teste unittest, você pode seguir estas etapas:
+Ou pelo seu navegador fora contêiner pelo endereço abaixo:
+http://127.0.0.1:80/weather?city=curitiba
 
-    Certifique-se de que o ambiente virtualizado do Docker está em execução com o seu aplicativo Flask. Se ainda não estiver, você pode iniciá-lo.
 
-    Abra um terminal.
+## Inicializando o projeto via bash local
 
-    Navegue até o diretório que contém seus arquivos de teste. Vamos supor que os testes estejam no diretório test_unit.
-
-    Execute o seguinte comando para executar os testes:
-
-python -m unittest test_unit.test_weather_app
+Acesse a pasta raizentech_test do projeto e execute o comando abaixo
 
 ```
+python3.6 weather_app.py
+
+```
+Acesse a API pelo navegador com a URL abaixo:
+
+http://127.0.0.1:80/weather?city=curitiba
+
+## Execução dos testes
+
+Para executar os testes com o framework de teste unittest, você pode seguir estas etapas:
+
+    1) Certifique-se de que o ambiente virtualizado do Docker está em execução com o seu aplicativo Flask. Se ainda não estiver, você pode iniciá-lo.
+
+    2) Abra um terminal.
+
+    3) Navegue até o diretório que contém seus arquivos de teste. Vamos supor que os testes estejam no diretório test_unit.
+
+    4) Execute o seguinte comando para executar os testes:
+         python -m unittest test_unit.test_weather_app
+
 ## Documentação do Código para API de Previsão do Tempo
 
-#### raizentech_test/weather_app.py
+### raizentech_test/weather_app.py
 
 Este arquivo é a aplicação principal do Flask, fornecendo um ponto de extremidade da API para recuperar dados meteorológicos.
 
-    ##### Inicialização:
+#### Inicialização:
         from flask import Flask, jsonify, request: Importa os módulos necessários do Flask.
         from config.config import weather_app, configure_app: Importa a instância da aplicação Flask e a função de configuração.
         from logging_utils.logging_utils import setup_logging: Importa a função de configuração de log.
         from mongodb_utils.mongodb_utils import connect_to_mongodb, fetch_weather_data, save_to_mongodb: Importa funções relacionadas ao MongoDB.
         weather_app = Flask(__name__): Inicializa a aplicação Flask.
 
-    ##### Configuração e Setup:
+#### Configuração e Setup:
         if __name__ == '__main__':: Executa o bloco de código seguinte se o script for executado diretamente.
         configure_app(): Configura a aplicação Flask com as configurações do MongoDB e OpenWeatherMap API.
         setup_logging(): Configura o log para a aplicação.
 
-    ##### Ponto de Extremidade da API:
+#### Ponto de Extremidade da API:
         @weather_app.route('/weather', methods=['GET']): Define um ponto de extremidade para a rota /weather, acessível por meio de requisições HTTP GET.
         def get_weather():: Define a função para lidar com as requisições à rota /weather.
         city = request.args.get('city', 'São Paulo'): Obtém o parâmetro da cidade da string de consulta com um valor padrão de 'São Paulo'.
         api_key = weather_app.config['OPENWEATHERMAP_API_KEY']: Obtém a chave da API OpenWeatherMap a partir da configuração da aplicação Flask.
 
-    ##### Recuperação de Dados Meteorológicos:
+#### Recuperação de Dados Meteorológicos:
         weather_history_collection = connect_to_mongodb(weather_app): Estabelece uma conexão com o MongoDB e recupera a coleção de histórico meteorológico.
         weather_data = fetch_weather_data(city, api_key): Recupera dados meteorológicos da API OpenWeatherMap.
         save_to_mongodb(weather_history_collection, city, weather_data): Salva os dados meteorológicos recuperados no MongoDB.
 
-    ##### Tratamento de Respostas:
+#### Tratamento de Respostas:
         return jsonify(weather_data): Retorna uma resposta JSON contendo os dados meteorológicos recuperados.
         except requests.exceptions.RequestException as e:: Trata exceções levantadas durante a requisição à API.
         weather_app.logger.error(f"Failed to fetch weather data: {str(e)}"): Registra uma mensagem de erro.
         return jsonify({'error': 'Failed to fetch weather data'}), 500: Retorna uma resposta de erro se a recuperação de dados meteorológicos falhar.
 
-    ##### Executar a Aplicação:
-        weather_app.run(debug=True, host='127.0.0.1'): Inicia a aplicação Flask em modo de depuração no localhost.
+#### Executar a Aplicação:
+        weather_app.run(debug=True, host='0.0.0.0', port=80): Inicia a aplicação Flask em modo de depuração no localhost.
 
-#### config/config.py
+### config/config.py
 
 Este arquivo fornece configurações para a aplicação Flask.
 
-    Inicialização:
+#### Inicialização:
         from flask import Flask: Importa o módulo Flask.
         import os: Importa o módulo do sistema operacional.
         weather_app = Flask(__name__): Inicializa a instância da aplicação Flask.
 
-    Função de Configuração:
+#### Função de Configuração:
         def configure_app():: Define uma função para configurar a aplicação Flask.
         weather_app.config['MONGO_URI']: Define a URI de conexão com o MongoDB.
         weather_app.config['OPENWEATHERMAP_API_KEY']: Define a chave da API OpenWeatherMap.
 
-logging_utils/logging_utils.py
+### logging_utils/logging_utils.py
 
 Este arquivo contém funções utilitárias para configurar o log.
 
-    Inicialização:
+#### Inicialização:
         import logging: Importa o módulo de log.
 
-    Função de Configuração de Log:
+#### Função de Configuração de Log:
         def setup_logging():: Define uma função para configurar o log.
         logging.basicConfig(filename='weather_app.log', level=logging.DEBUG): Configura o log para um arquivo com nível DEBUG.
 
-mongodb_utils/mongodb_utils.py
+### mongodb_utils/mongodb_utils.py
 
 Este arquivo contém funções utilitárias para operações no MongoDB.
 
-    Inicialização:
+#### Inicialização:
         from pymongo import MongoClient: Importa o MongoClient da biblioteca pymongo.
         from datetime import datetime: Importa o módulo de data e hora.
         import requests: Importa o módulo de requisições.
         import logging: Importa o módulo de log.
 
-    Função de Conexão com o Banco de Dados:
+#### Função de Conexão com o Banco de Dados:
         def connect_to_mongodb(app):: Define uma função para conectar ao MongoDB.
         client = MongoClient(app.config['MONGO_URI']): Estabelece uma conexão com o MongoDB usando a URI fornecida.
         weather_history_collection = db['weather_history']: Recupera a coleção 'weather_history'.
 
-    Função de Recuperação de Dados Meteorológicos:
+#### Função de Recuperação de Dados Meteorológicos:
         def fetch_weather_data(city, api_key):: Define uma função para recuperar dados meteorológicos.
-        url = f'https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}': Constrói a URL para a requisição à API OpenWeatherMap.
+        url = f'https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&lang=pt_br&units=metric': Constrói a URL para a requisição à API OpenWeatherMap.
         response = requests.get(url): Realiza a requisição à API.
         response.raise_for_status(): Gera um HTTPError para respostas ruins (4xx e 5xx).
         return response.json(): Retorna os dados em formato JSON.
 
-    Função de Salvamento no MongoDB:
+#### Função de Salvamento no MongoDB:
         def save_to_mongodb(collection, city, weather_data):: Define uma função para salvar dados no MongoDB.
         history_entry = {'city': city, 'timestamp': datetime.utcnow(), 'weather_data': weather_data}: Cria uma entrada de histórico.
         collection.insert_one(history_entry): Insere a entrada no MongoDB.
